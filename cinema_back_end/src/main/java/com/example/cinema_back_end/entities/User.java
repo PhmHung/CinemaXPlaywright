@@ -4,6 +4,10 @@ import lombok.Data;
 import javax.persistence.*;
 import java.util.Set;
 
+//Sua loi
+import java.util.HashSet;
+//
+
 @Entity
 @Data
 @Table(name = "userr")
@@ -25,5 +29,6 @@ public class User {
     @JoinTable(name = "users_roles",
             joinColumns = {@JoinColumn(name = "user_id")},
             inverseJoinColumns = {@JoinColumn(name = "role_id")})
-    private Set<Role> roles;
+    //private Set<Role> roles;
+    private Set<Role> roles = new HashSet<>();
 }
