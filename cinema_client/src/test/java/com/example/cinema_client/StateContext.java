@@ -4,18 +4,23 @@ import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.WaitForSelectorState;
-import lombok.SneakyThrows;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 
 public class StateContext extends TestContext {
 
-    Path AUTH_FILE = Paths.get(System.getProperty("user.home"),
-            "Downloads","cinema_client","src","test","java","com","example","cinema_client","state.json");
+    // path file nằm cùng thư mục với file StateContext.java
+    Path AUTH_FILE = Paths.get("src","test","java","com","example","cinema_client","state.json");
 
     private void LogInState() throws IOException {
         Files.createDirectories(AUTH_FILE.getParent());
@@ -86,6 +91,58 @@ public class StateContext extends TestContext {
 
         context = browser.newContext(new Browser.NewContextOptions().setStorageStatePath(AUTH_FILE));
         page = context.newPage();
+    }
+
+    /**
+     * Delete all ticket history in database table 'ticket'
+     * Then restore 2 default rows with seat_id = 5 and 10
+     * Table structure: id, qr_imageurl, bill_id, schedule_id, seat_id
+     */
+    static void resetTicketDatabase() {
+        String jdbcUrl = "jdbc:mysql://localhost:3306/cinema";
+        String username = "root";
+        String password = "";
+
+        try {
+            // Load MySQL JDBC Driver
+            Class.forName("com.mysql.cj.jdbc.Driver");
+
+            try (Connection connection = DriverManager.getConnection(jdbcUrl, username, password)) {
+                // 1) Xóa tất cả vé
+                String deleteQuery = "DELETE FROM ticket";
+                try (Statement statement = connection.createStatement()) {
+                    int rowsAffected = statement.executeUpdate(deleteQuery);
+                    System.out.println("Đã xóa " + rowsAffected + " vé khỏi bảng ticket");
+                }
+
+                // 2) Reset auto_increment về 1
+                String resetAutoIncrement = "ALTER TABLE ticket AUTO_INCREMENT = 1";
+                try (Statement statement = connection.createStatement()) {
+                    statement.executeUpdate(resetAutoIncrement);
+                    System.out.println("Đã reset AUTO_INCREMENT của bảng ticket");
+                }
+
+                // 3) Khôi phục 2 rows mặc định với seat_id = 5 và 10
+                String insertQuery = "INSERT INTO ticket (qr_imageurl, bill_id, schedule_id, seat_id) VALUES " +
+                        "('qr_code_5', 1, 1, 5), " +
+                        "('qr_code_10', 1, 1, 10)";
+                try (Statement statement = connection.createStatement()) {
+                    int rowsInserted = statement.executeUpdate(insertQuery);
+                    System.out.println("Đã khôi phục " + rowsInserted + " vé mặc định (seat_id: 5, 10)");
+                }
+            }
+        } catch (ClassNotFoundException e) {
+            System.err.println("Lỗi: Không tìm thấy MySQL JDBC Driver");
+            e.printStackTrace();
+        } catch (SQLException e) {
+            System.err.println("Lỗi khi xóa/khôi phục dữ liệu vé từ cơ sở dữ liệu: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @AfterEach
+    void cleanUpDatabase() {
+        resetTicketDatabase();
     }
 
 }
