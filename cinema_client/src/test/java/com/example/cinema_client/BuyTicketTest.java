@@ -253,9 +253,28 @@ public class BuyTicketTest extends StateContext {
         assertThat(page).hasURL("http://localhost:8081/tickets/history");
         Locator header = page.locator("div.container-fluid > h2");
         assertThat(header).hasText("Lịch Sử Mua Vé");
+    }
 
-        // Kiểm tra vé mới xuất hiện trong lịch sử
+    /**
+     * Test case UI_B8: History Page Testing - View ticket history.
+     * Description: User navigates to the ticket history page to view past purchases.
+     * Expected Output: The ticket history page displays a list of previously purchased tickets.
+     */
+    @Test
+    void ViewTicketHistory() throws IOException {
+        LogIn();
 
+        // Điều hướng tới trang lịch sử vé
+        page.navigate("http://localhost:8081/");
+
+        // <a class="nav-link" href="/tickets/history">Lịch sử mua vé</a>
+        Locator historyLink = page.locator("a.nav-link").filter(new Locator.FilterOptions().setHasText("Lịch sử mua vé"));
+        historyLink.isVisible();
+        historyLink.click();
+
+        assertThat(page).hasURL("http://localhost:8081/tickets/history");
+        Locator header = page.locator("div.container-fluid > h2");
+        assertThat(header).hasText("Lịch Sử Mua Vé");
     }
 
 }
