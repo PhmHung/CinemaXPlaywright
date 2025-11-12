@@ -9,7 +9,7 @@ class CinemaClientApplicationTests {
 
     @Test
     void contextLoads() {
-        System.out.println(UriComponentsBuilder.fromHttpUrl("http://localhost:8080/api/branches")
+        System.out.println(UriComponentsBuilder.fromHttpUrl("http://localhost:8081/api/branches")
                 .queryParam("movieId","{movieId}").encode().toUriString());
     }
 
