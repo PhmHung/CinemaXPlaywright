@@ -5,25 +5,84 @@ import com.microsoft.playwright.options.LoadState;
 import com.microsoft.playwright.options.SelectOption;
 import org.junit.jupiter.api.Test;
 import com.microsoft.playwright.*;
+import org.junit.jupiter.api.Timeout;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;
 
 public class BuyTicketTest extends StateContext {
 
+    final String[] BRANCH_LIST = {"HUYCINEMA Hà Đông", "HUYCINEMA Thủ Đức", "HUYCINEMA Ba Đình", "HUYCINEMA Phạm Hùng"};
+
     /**
      * Value for testing
      */
     final String MOVIE_NAME = "Người Nhện";
-    final String BRANCH_NAME = "HUYCINEMA Hà Đông";
-    final String DATE_VALUE = "2021-01-08";
-    final String TIME_VALUE = "14:05";
-    final String ROOM_NAME = "Phòng 101";
+    final String SELECTED_BRANCH_NAME = "HUYCINEMA Hà Đông";
+    final String SELECTED_DATE_VALUE = "2021-01-08";
+    final String SELECTED_TIME_VALUE = "14:05";
+    final String SELECTED_ROOM_NAME = "Phòng 101";
     final String[] SELECTED_SEATS = {"2", "3"};
 
     /**
-     * Test case UI_B1: Schedule Selection Testing - Choose custom date and time.
+     * Test case UI_B01: Display Branch List.
+     * Description: Test to verify that cinema branch list can be shown to users
+     * Expected Output: Branch List appears on screen
+     */
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void displayBranchList() throws IOException {
+        LogIn();
+        page.navigate("http://localhost:8081/");
+
+        Locator movieCard = page.locator("div.card.movie-item")
+                .filter(new Locator.FilterOptions().setHasText(MOVIE_NAME));
+        Locator buyTicketButton = movieCard.getByText("Mua vé");
+        buyTicketButton.click();
+
+        assertThat(page).hasURL("http://localhost:8081/branches?movieId=7");
+        assertThat(page.locator("h2")).hasText("Chọn Chi Nhánh");
+
+        for (String branchName : BRANCH_LIST) {
+            Locator branchCard = page.locator("div.card.branch-item")
+                    .filter(new Locator.FilterOptions().setHasText(branchName));
+            assertThat(branchCard).isVisible();
+        }
+    }
+
+
+    /**
+     * Test case UI_B02: Select Branch - Successful.
+     * Description: Test to verify that cinema branch can be selected by users
+     * Expected Output: Diverted to movie schedule menu
+     */
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void selectBranchSuccess() throws IOException {
+        LogIn();
+        page.navigate("http://localhost:8081/");
+
+        Locator movieCard = page.locator("div.card.movie-item")
+                .filter(new Locator.FilterOptions().setHasText(MOVIE_NAME));
+        Locator buyTicketButton = movieCard.getByText("Mua vé");
+
+        buyTicketButton.click();
+
+        assertThat(page).hasURL("http://localhost:8081/branches?movieId=7");
+
+        Locator haDongCard = page.locator("div.card.branch-item")
+                .filter(new Locator.FilterOptions().setHasText(SELECTED_BRANCH_NAME));
+
+        haDongCard.getByRole(AriaRole.LINK).click();
+
+        assertThat(page).hasURL("http://localhost:8081/schedule?movieId=7&branchId=1");
+
+    }
+
+    /**
+     * Test case UI_B03: Schedule Selection Testing - Choose custom date and time.
      * Description: User selects a movie schedule from the available options.
      * Expected Output: The user is redirected to the room selection page after submitting the schedule.
      */
@@ -43,7 +102,7 @@ public class BuyTicketTest extends StateContext {
         // assertThat(page).hasURL("http://localhost:8081/branches?movieId=7");
 
         Locator branchCard = page.locator("div.card.branch-item")
-                .filter(new Locator.FilterOptions().setHasText(BRANCH_NAME));
+                .filter(new Locator.FilterOptions().setHasText(SELECTED_BRANCH_NAME));
         branchCard.getByRole(AriaRole.LINK).click();
 
         // assertThat(page).hasURL("http://localhost:8081/schedule?movieId=7&branchId=1");
@@ -51,12 +110,12 @@ public class BuyTicketTest extends StateContext {
         // page.navigate("http://localhost:8081/schedule?movieId=7&branchId=1");
 
         // CHỌN NGÀY XEM — theo value
-        page.selectOption("#listDate", new SelectOption().setValue(DATE_VALUE));
-        assertThat(page.locator("#listDate")).hasValue(DATE_VALUE);
+        page.selectOption("#listDate", new SelectOption().setValue(SELECTED_DATE_VALUE));
+        assertThat(page.locator("#listDate")).hasValue(SELECTED_DATE_VALUE);
 
         // CHỌN GIỜ XEM
-        page.selectOption("#listTimes", new SelectOption().setValue(TIME_VALUE));
-        assertThat(page.locator("#listTimes")).hasValue(TIME_VALUE);
+        page.selectOption("#listTimes", new SelectOption().setValue(SELECTED_TIME_VALUE));
+        assertThat(page.locator("#listTimes")).hasValue(SELECTED_TIME_VALUE);
 
         // SUBMIT <input type="submit" class="btn btn-outline-danger btn-block">
         Locator submit = page.locator("input[type=\"submit\"].btn.btn-outline-danger.btn-block");
@@ -74,7 +133,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B2: Schedule Selection Testing - Default date and time
+     * Test case UI_B04: Schedule Selection Testing - Default date and time
      * Description: User submits the schedule selection form without changing the default date and time.
      * Expected Output: The user is redirected to the room selection page with default schedule parameters.
      */
@@ -94,7 +153,7 @@ public class BuyTicketTest extends StateContext {
         // assertThat(page).hasURL("http://localhost:8081/branches?movieId=7");
 
         Locator branchCard = page.locator("div.card.branch-item")
-                .filter(new Locator.FilterOptions().setHasText(BRANCH_NAME));
+                .filter(new Locator.FilterOptions().setHasText(SELECTED_BRANCH_NAME));
         branchCard.getByRole(AriaRole.LINK).click();
 
         // assertThat(page).hasURL("http://localhost:8081/schedule?movieId=7&branchId=1");
@@ -124,7 +183,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B3: Room Selection Testing
+     * Test case UI_B05: Room Selection Testing
      * Description: User selects a room from the available options.
      * Expected Output: The user is redirected to the seat selection page after submitting the room selection.
      */
@@ -141,7 +200,7 @@ public class BuyTicketTest extends StateContext {
         buyTicketButton.click();
 
         Locator branchCard = page.locator("div.card.branch-item")
-                .filter(new Locator.FilterOptions().setHasText(BRANCH_NAME));
+                .filter(new Locator.FilterOptions().setHasText(SELECTED_BRANCH_NAME));
         branchCard.getByRole(AriaRole.LINK).click();
 
         // SUBMIT
@@ -151,7 +210,7 @@ public class BuyTicketTest extends StateContext {
         page.waitForNavigation(() -> submit.click());
 
         Locator roomCard = page.locator("div.card.branch-item")
-                .filter(new Locator.FilterOptions().setHasText(ROOM_NAME));
+                .filter(new Locator.FilterOptions().setHasText(SELECTED_ROOM_NAME));
         roomCard.getByRole(AriaRole.LINK).click();
 
         // Xác nhận URL đích có chứa seat-selection
@@ -162,7 +221,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B4: Seat Selection Testing - Select available seats.
+     * Test case UI_B06: Seat Selection Testing - Select available seats.
      * Description: User selects seats from the available options.
      * Expected Output: The user is redirected to the bill page after submitting the seat selection.
      */
@@ -194,7 +253,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B5: Seat Selection Testing - Attempt to select already booked seats.
+     * Test case UI_B07: Seat Selection Testing - Attempt to select already booked seats.
      * Description: User attempts to select seats that have already been booked.
      * Expected Output: The system prevents the selection of already booked seats.
      */
@@ -218,7 +277,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B6: Seat Selection Testing - No seats selected.
+     * Test case UI_B08: Seat Selection Testing - No seats selected.
      * Description: User attempts to submit the seat selection form without selecting any seats.
      * Expected Output: The system prevents form submission and prompts the user to select seats.
      */
@@ -235,7 +294,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B7: Bill Payment Testing - Successful payment.
+     * Test case UI_B09: Bill Payment Testing - Successful payment.
      * Description: User completes the bill payment process.
      * Expected Output: The ticket purchase is successful, and the result is shown on the ticket page.
      */
@@ -256,7 +315,7 @@ public class BuyTicketTest extends StateContext {
     }
 
     /**
-     * Test case UI_B8: History Page Testing - View ticket history.
+     * Test case UI_B10: History Page Testing - View ticket history.
      * Description: User navigates to the ticket history page to view past purchases.
      * Expected Output: The ticket history page displays a list of previously purchased tickets.
      */
