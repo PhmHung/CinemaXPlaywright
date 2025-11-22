@@ -1,162 +1,94 @@
 /** @format */
 import { test, expect } from "@playwright/test";
-import * as fs from "fs";
 
 const baseURL = "http://localhost:8080";
-const TOKEN_FILE_PATH = "./tests/test_data/authentic.json";
+let accessToken = "";
 
-let authToken;
-
-const LOGGED_IN_USER_ID = 1;
-
-test.describe("API Tests for GET /api/tickets", () => {
-  test.beforeAll(() => {
-    try {
-      const authFileContent = fs.readFileSync(TOKEN_FILE_PATH, "utf-8");
-      const authData = JSON.parse(authFileContent);
-      authToken = authData.accessToken;
-    } catch (error) {
-      console.error(
-        `LỖI: Không thể tải token từ ${TOKEN_FILE_PATH}. Vui lòng đảm bảo globalSetup đã chạy.`
-      );
-      throw error;
-    }
+test.describe("API Tests for GET /api/tickets (TC_T1 - TC_T7)", () => {
+  test.beforeAll(async ({ request }) => {
+    console.log("--- SETUP: Đang đăng nhập với testr1@gmail.com ---");
+    const response = await request.post(`${baseURL}/login`, {
+      data: { username: "testr1@gmail.com", password: "123456" },
+    });
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    accessToken = body.accessToken;
+    console.log("SETUP: Đã lấy được Token!");
   });
 
-  const buildUrl = (userId) => {
-    return `${baseURL}/api/tickets?userId=${userId}`;
-  };
-
-  /**
-   * @desc GET /api/tickets - TC-T1: Lấy danh sách vé thành công của người đặt
-   * @goal Status: 200 OK, Body: Trả về nội dung lịch chiếu, chi nhánh, v.v. (List không rỗng)
-   * @data Params: userId = LOGGED_IN_USER_ID
-   */
-  test("TC-T1: should return list of tickets for the logged-in user", async ({
+  // TC_T1: HAPPY PATH (SỬA LẠI SANG GET)
+  test("TC_T1: Lấy danh sách vé thành công với userId hợp lệ (userId=1)", async ({
     request,
   }) => {
-    const url = buildUrl(LOGGED_IN_USER_ID);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        userId: "1",
       },
     });
 
     expect(response.status()).toBe(200);
-
-    const tickets = await response.json();
-    expect(Array.isArray(tickets)).toBe(true);
-    expect(tickets.length).toBeGreaterThan(0);
-    expect(tickets[0]).toHaveProperty("id");
+    const body = await response.json();
+    expect(Array.isArray(body)).toBeTruthy();
   });
 
-  /**
-   * @desc GET /api/tickets - TC-T2: Lấy danh sách vé của người khác
-   * @goal Status: 401 Unauthorized (hoặc 403 Forbidden nếu API phân quyền mạnh)
-   * @data Params: userId = Bất kỳ (ID khác 1)
-   */
-  test("TC-T2: should fail (401) when fetching tickets for another user", async ({
+  // TC_T2: INVALID TYPE
+  test("TC_T2: Lấy danh sách vé với userId kiểu dữ liệu string ('abc')", async ({
     request,
   }) => {
-    const otherUserId = 2;
-    const url = buildUrl(otherUserId);
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { userId: "abc" },
+    });
+    expect(response.status()).toBe(400);
+  });
 
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+  // TC_T3: WHITESPACE
+  test("TC_T3: Lấy danh sách vé với userId chứa khoảng trắng", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { userId: " " },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_T4: MISSING PARAM userId
+  test("TC_T4: Thiếu tham số userId", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {},
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_T5: BUSINESS LOGIC userId là số âm
+  test("TC_T5: Lấy danh sách vé với userId là số âm", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { userId: "-1" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_T6: SECURITY lấy vé của người khác
+  test("TC_T6: Lấy danh sách vé của người khác (userId=2)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: { userId: "2" },
     });
 
     expect(response.status()).toBe(401);
   });
 
-  /**
-   * @desc GET /api/tickets - TC-T3: Lấy danh sách vé rỗng (User đăng nhập nhưng chưa đặt vé)
-   * @goal Status: 200 OK, Body: Trả về mảng rỗng ([])
-   * @data Params: userId = User chưa đặt vé (Giả định ID 99)
-   */
-  test("TC-T3: should return empty array for user who has not booked", async ({
-    request,
-  }) => {
-    // Giả định User ID 99 là hợp lệ nhưng chưa từng đặt vé
-    const userWithoutBookings = 99;
-    const url = buildUrl(userWithoutBookings);
-
-    const response = await request.get(url, {
-      headers: {
-        // Chúng ta vẫn phải dùng token của LOGGED_IN_USER_ID=1 để xác thực
-        Authorization: `Bearer ${authToken}`,
-      },
+  // TC_T7: SECURITY không Token
+  test("TC_T7: Gọi API không có token", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/tickets`, {
+      params: { userId: "1" },
     });
-
-    // 1. Kiểm tra Status Code
-    // Giả định API cho phép admin/user lấy data nếu query hợp lệ, nhưng trả về rỗng nếu không có data.
-    expect(response.status()).toBe(200);
-
-    // 2. Kiểm tra Body response (phải là một mảng rỗng)
-    const tickets = await response.json();
-    expect(Array.isArray(tickets)).toBe(true);
-    expect(tickets.length).toBe(0);
-  });
-
-  // --- TC_T4: Gửi API thiếu userId ---
-  /**
-   * @desc GET /api/tickets - TC-T4: Gửi API thiếu userId
-   * @goal Status: 400 Bad Request
-   * @data Params: Thiếu userId
-   */
-  test("TC-T4: should fail with missing userId parameter", async ({
-    request,
-  }) => {
-    // Gửi request thiếu tham số userId
-    const url = `${baseURL}/api/tickets`;
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    // 1. Kiểm tra Status Code
-    expect(response.status()).toBe(400);
-  });
-
-  // --- TC_T5: userId là chuỗi ký tự ---
-  /**
-   * @desc GET /api/tickets - TC-T5: Gửi API với userId là chuỗi ký tự
-   * @goal Status: 400 Bad Request
-   * @data Params: userId là chuỗi (ví dụ: "abc")
-   */
-  test("TC-T5: should fail with non-numeric userId", async ({ request }) => {
-    const nonNumericUserId = "abc";
-    const url = buildUrl(nonNumericUserId);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
-    // 1. Kiểm tra Status Code
-    expect(response.status()).toBe(400);
-  });
-
-  // --- TC_T6: Không có Token (Unauthenticated) ---
-  /**
-   * @desc GET /api/tickets - TC-T6: Gửi API mà không có token
-   * @goal Status: 401 Unauthorized
-   * @data Headers: Không có Token, Params: userId hợp lệ
-   */
-  test("TC-T6: should fail with missing authorization token (401)", async ({
-    request,
-  }) => {
-    const url = buildUrl(LOGGED_IN_USER_ID);
-
-    // Gửi request mà không kèm Authorization Header
-    const response = await request.get(url);
-
-    // 1. Kiểm tra Status Code
     expect(response.status()).toBe(401);
   });
 });

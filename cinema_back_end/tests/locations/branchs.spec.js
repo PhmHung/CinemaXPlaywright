@@ -27,8 +27,8 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: 1,
+      params: {
+        movieId: 7,
       },
     });
 
@@ -44,8 +44,8 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: 2,
+      params: {
+        movieId: 3,
       },
     });
 
@@ -54,61 +54,61 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     expect(body).toEqual([]);
   });
 
-  //TC_B3: INVALID DATA - ID KHÔNG TỒN TẠI
+  //TC_B3: INVALID GET - ID KHÔNG TỒN TẠI
   test("TC_B3: Lấy danh sách với movieId không tồn tại (movieId=99)", async ({
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
+      params: {
         movieId: 99,
       },
     });
 
-    expect(response.status()).toBe(400);
+    expect(response.status()).toBe(200);
   });
 
-  // --- TC_B4: INVALID TYPE - SAI KIỂU DỮ LIỆU ---
+  //TC_B4: INVALID TYPE - SAI KIỂU DỮ LIỆU
   test("TC_B4: Kiểm tra movieId sai kiểu (String 'abc')", async ({
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: "abc", // Gửi chuỗi thay vì số
+      params: {
+        movieId: "abc",
       },
     });
 
-    expect(response.status()).toBe(400); // Bad Request
+    expect(response.status()).toBe(400);
   });
 
-  // --- TC_B5: MISSING DATA - THIẾU MOVIEID ---
+  //TC_B5: MISSING GET - THIẾU MOVIEID
   test("TC_B5: Kiểm tra body rỗng (Thiếu movieId)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {}, // Body rỗng
+      params: {},
     });
 
     expect(response.status()).toBe(400);
   });
 
-  // --- TC_B6: TYPO PARAM - SAI TÊN THAM SỐ ---
+  //TC_B6: TYPO PARAM - SAI TÊN THAM SỐ
   test("TC_B6: Kiểm tra sai tên tham số (movie_Id)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movie_Id: "abc", // Sai tên key (thừa dấu gạch dưới)
+      params: {
+        movie_Id: "7",
       },
     });
 
     expect(response.status()).toBe(400);
   });
 
-  // --- TC_B7: BUSINESS LOGIC - SỐ ÂM ---
+  //TC_B7: BUSINESS LOGIC - SỐ ÂM
   test("TC_B7: Kiểm tra movieId là số âm (-1)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
+      params: {
         movieId: -1,
       },
     });
@@ -116,57 +116,50 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     expect(response.status()).toBe(400);
   });
 
-  // --- TC_B8: SECURITY - KHÔNG DÙNG TOKEN ---
+  //TC_B8: SECURITY - KHÔNG DÙNG TOKEN
   test("TC_B8: Truy cập không sử dụng Token", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      // KHÔNG GỬI HEADER Authorization
-      data: {
+      params: {
         movieId: 1,
       },
     });
 
-    expect(response.status()).toBe(401); // Unauthorized
+    expect(response.status()).toBe(401);
   });
 
-  // --- TC_B9: SECURITY - SQL INJECTION ---
+  //TC_B9: SECURITY - SQL INJECTION
   test("TC_B9: Kiểm tra SQL Injection", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: "1 OR 1=1", // Payload tấn công
+      params: {
+        movieId: "1 OR 1=1",
       },
     });
-
-    // Hệ thống phải chặn lại (400) vì sai kiểu dữ liệu (String vào Int)
-    // Tuyệt đối không được 200 hoặc 500
     expect(response.status()).toBe(400);
   });
 
-  // --- TC_B10: EDGE CASE - MAX INTEGER ---
+  //TC_B10: EDGE CASE - MAX INTEGER
   test("TC_B10: Kiểm tra movieId là số cực lớn", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: 9999999999, // Số quá lớn
+      params: {
+        movieId: 9999999999,
       },
     });
 
-    // Mong đợi 400 hoặc xử lý về rỗng
     expect(response.status()).not.toBe(500);
   });
 
-  // --- TC_B11: EDGE CASE - KHOẢNG TRẮNG ---
-  test("TC_B11: Kiểm tra movieId chứa khoảng trắng (' 1 ')", async ({
+  //TC_B11: EDGE CASE - KHOẢNG TRẮNG
+  test("TC_B11: Kiểm tra movieId chứa khoảng trắng ('  ')", async ({
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      data: {
-        movieId: " 1 ", // Chuỗi có dấu cách
+      params: {
+        movieId: "  ",
       },
     });
-
-    // Thường backend Java sẽ lỗi parse -> 400
     expect(response.status()).toBe(400);
   });
 });

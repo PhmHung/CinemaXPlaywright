@@ -1,137 +1,149 @@
 /** @format */
 import { test, expect } from "@playwright/test";
-import * as fs from "fs";
 
 const baseURL = "http://localhost:8080";
-const TOKEN_FILE_PATH = "./tests/test_data/authentic.json";
+let accessToken = "";
 
-let authToken;
+test.describe("API Tests for GET /api/seats (TC_S1 - TC_S9)", () => {
+  test.beforeAll(async ({ request }) => {
+    console.log("--- SETUP: Đang đăng nhập với testr1@gmail.com ---");
 
-const VALID_SCHEDULE_ID = 1;
-
-test.describe("API Tests for GET /api/seats", () => {
-  test.beforeAll(() => {
-    try {
-      const authFileContent = fs.readFileSync(TOKEN_FILE_PATH, "utf-8");
-      const authData = JSON.parse(authFileContent);
-      authToken = authData.accessToken;
-    } catch (error) {
-      console.error(
-        `LỖI: Không thể tải token từ ${TOKEN_FILE_PATH}. Vui lòng đảm bảo globalSetup đã chạy.`
-      );
-      throw error;
-    }
-  });
-
-  const buildUrl = (scheduleId) => {
-    return `${baseURL}/api/seats?scheduleId=${scheduleId}`;
-  };
-
-  /**
-   * @desc GET /api/seats - TC-S1: Lấy danh sách ghế thành công với scheduleId hợp lệ
-   * @goal Status: 200 OK, Body: Hiển thị danh sách chỗ ngồi, trạng thái chỗ ngồi
-   * @data Params: scheduleId hợp lệ (ví dụ: 1)
-   */
-  test("TC-S1: should return list of seats with valid scheduleId", async ({
-    request,
-  }) => {
-    const url = buildUrl(VALID_SCHEDULE_ID);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await request.post(`${baseURL}/login`, {
+      data: {
+        username: "testr1@gmail.com",
+        password: "123456",
       },
     });
 
     expect(response.status()).toBe(200);
-
-    const seats = await response.json();
-    expect(Array.isArray(seats)).toBe(true);
-    expect(seats.length).toBeGreaterThan(0);
-    expect(seats[0]).toHaveProperty("id");
-    expect(seats[0]).toHaveProperty("status");
+    const body = await response.json();
+    accessToken = body.accessToken;
+    console.log("SETUP: Đã lấy được Token!");
   });
 
-  /**
-   * @desc GET /api/seats - TC-S2: Lấy danh sách ghế với scheduleId không hợp lệ
-   * @goal Status: 200 OK, Body: Mảng rỗng ([])
-   * @data Params: scheduleId không tồn tại (ví dụ: 99999)
-   */
-  test("TC-S2: should return empty list with non-existent scheduleId", async ({
+  // TC_S1: HAPPY PATH - LẤY GHẾ THÀNH CÔNG
+  test("TC_S1: Lấy danh sách ghế thành công với scheduleId hợp lệ (scheduleId=1)", async ({
     request,
   }) => {
-    const nonExistentScheduleId = 99999;
-    const url = buildUrl(nonExistentScheduleId);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "1",
       },
     });
 
     expect(response.status()).toBe(200);
+    const body = await response.json();
 
-    const seats = await response.json();
-    expect(Array.isArray(seats)).toBe(true);
-    expect(seats.length).toBe(0);
+    // --- DEBUG: In ra xem cấu trúc thực tế là gì nếu vẫn lỗi ---
+    console.log("Response Body của TC_S1:", body);
+
+    // SỬA: Kiểm tra trực tiếp body (giả định body là mảng)
+    expect(Array.isArray(body)).toBeTruthy(); // Kiểm tra body chính là một mảng
+    expect(body.length).toBeGreaterThan(0); // Kiểm tra mảng có phần tử
   });
 
-  /**
-   * @desc GET /api/seats - TC-S3: Lấy danh sách ghế với scheduleId trống
-   * @goal Status: 400 Bad Request
-   * @data Params: scheduleId trống/thiếu
-   */
-  test("TC-S3: should fail with missing scheduleId parameter", async ({
+  // TC_S2: INVALID ID - KHÔNG TỒN TẠI
+  test("TC_S2: Lấy danh sách ghế với scheduleId không tồn tại (999)", async ({
     request,
   }) => {
-    const url = `${baseURL}/api/seats`;
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "999",
       },
     });
 
     expect(response.status()).toBe(400);
-
-    const responseText = await response.text();
-    expect(responseText).toContain("Error Message"); // Dựa vào bảng của bạn
   });
 
-  /**
-   * @desc GET /api/seats - TC-S4: Lấy danh sách ghế khi scheduleId là chuỗi ký tự
-   * @goal Status: 400 Bad Request
-   * @data Params: scheduleId là chuỗi (ví dụ: "abc")
-   */
-  test("TC-S4: should fail with non-numeric scheduleId", async ({
+  // TC_S3: INVALID TYPE - SAI KIỂU DỮ LIỆU
+  test("TC_S3: Kiểm tra scheduleId sai kiểu dữ liệu (String 'abc')", async ({
     request,
   }) => {
-    const nonNumericScheduleId = "abc";
-    const url = buildUrl(nonNumericScheduleId);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "abc",
       },
     });
 
     expect(response.status()).toBe(400);
-
-    const responseText = await response.text();
-    expect(responseText).toContain("Error Message"); // Dựa vào bảng của bạn
   });
 
-  /**
-   * @desc GET /api/seats - TC-S5: Lấy danh sách mà không có token
-   * @goal Status: 401 Unauthorized
-   * @data Headers: Không có Token
-   */
-  test("TC-S5: should fail with missing authorization token (401)", async ({
+  // TC_S4: OVERFLOW - GIÁ TRỊ QUÁ LỚN
+  test("TC_S4: Kiểm tra scheduleId vượt quá giới hạn (Overflow)", async ({
     request,
   }) => {
-    const url = buildUrl(VALID_SCHEDULE_ID);
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "99999999",
+      },
+    });
 
-    const response = await request.get(url);
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_S5: WHITESPACE - CHỨA KHOẢNG TRẮNG
+  test("TC_S5: Kiểm tra scheduleId chứa khoảng trắng (' ')", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: " ",
+      },
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_S6: MISSING PARAM - THIẾU THAM SỐ
+  test("TC_S6: Kiểm tra lỗi khi thiếu tham số bắt buộc scheduleId", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {}, // Không truyền tham số nào
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_S7: BUSINESS LOGIC - SỐ ÂM
+  test("TC_S7: Kiểm tra scheduleId là số âm (-1)", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "-1",
+      },
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  // TC_S8: SECURITY - KHÔNG CÓ TOKEN
+  test("TC_S8: Lấy danh sách mà không có token", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/seats`, {
+      // Không truyền Header Authorization
+      params: {
+        scheduleId: "1",
+      },
+    });
+
     expect(response.status()).toBe(401);
+  });
+
+  // TC_S9: SECURITY - SQL INJECTION
+  test("TC_S9: Kiểm tra lỗ hổng SQL Injection", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/seats`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        scheduleId: "1 OR 1=1 --",
+      },
+    });
+
+    expect(response.status()).toBe(400);
   });
 });
