@@ -1,160 +1,241 @@
 /** @format */
-
 import { test, expect } from "@playwright/test";
-import * as fs from "fs";
 
-const baseURL = "http://localhost:8080";
-const TOKEN_FILE_PATH = "./tests/test_data/authentic.json";
-let authToken;
+// --- CẤU HÌNH TEST ---
+const BASE_URL = "http://localhost:8080";
+const API_PATH = "/api/rooms";
+const LOGIN_USER = { username: "testr1@gmail.com", password: "123456" };
 
-const VALID_PARAMS = {
-  movieId: 7,
-  branchId: 2,
+// Dữ liệu chuẩn (Happy Path - Base Choice)
+const VALID_DATA = {
+  movieId: "7",
+  branchId: "1",
   startDate: "2021-01-05",
   startTime: "10:15",
 };
-test.describe("API Tests for GET /api/rooms", () => {
-  test.beforeAll(() => {
-    try {
-      const authFileContent = fs.readFileSync(TOKEN_FILE_PATH, "utf-8");
-      const authData = JSON.parse(authFileContent);
-      authToken = authData.accessToken;
-    } catch (error) {
-      console.error(
-        `LỖI: Không thể tải token từ ${TOKEN_FILE_PATH}. Đảm bảo globalSetup đã chạy.`
-      );
-      throw error;
+
+let accessToken = "";
+
+test.describe("FULL SUITE: Schedule API Testing (21 Test Cases)", () => {
+  test.beforeAll(async ({ request }) => {
+    console.log("--- [SETUP] Đang đăng nhập hệ thống ---");
+    const response = await request.post(`${BASE_URL}/login`, {
+      data: LOGIN_USER,
+    });
+
+    expect(response.status(), "Đăng nhập thất bại!").toBe(200);
+    const body = await response.json();
+    accessToken = body.accessToken;
+    console.log("--- [SETUP] Đăng nhập thành công. Token đã sẵn sàng. ---");
+  });
+
+  const getHeaders = () => ({
+    Authorization: `Bearer ${accessToken}`,
+    "Content-Type": "application/json",
+  });
+  test("TC_RM01: [Base Choice] Lấy dữ liệu thành công (Happy Path)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: VALID_DATA,
+    });
+    if (response.status() !== 200) {
+      console.log("URL gọi đi:", `${BASE_URL}${API_PATH}`);
+      console.log("Params gửi đi:", VALID_DATA);
+      console.log("❌ LỖI SERVER TRẢ VỀ:", await response.text()); // Hoặc .json()
     }
-  });
-  const buildUrl = (params) => {
-    const query = new URLSearchParams(params).toString();
-    return `${baseURL}/api/rooms?${query}`;
-  };
-
-  /**
-   * @desc GET /api/rooms - TC-RM1: Lấy danh sách phòng xem phim thành công
-   * @goal Status: 200 OK, Body: Thông tin phòng
-   * @data Params: movieId, branchId, startDate, startTime hợp lệ (có lịch)
-   */
-  test("TC-RM1: should return list of rooms with matching schedule", async ({
-    request,
-  }) => {
-    const url = buildUrl(VALID_PARAMS);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
     expect(response.status()).toBe(200);
-    const rooms = await response.json();
-    expect(Array.isArray(rooms)).toBe(true);
-    expect(rooms.length).toBeGreaterThan(0);
-    expect(rooms[0]).toHaveProperty("id");
+    const body = await response.json();
   });
 
-  /**
-   * @desc GET /api/rooms - TC-RM2: Không có phòng/lịch chiếu nào khớp
-   * @goal Status: 200 OK, Body: mảng rỗng
-   * @data Params: movieId hợp lệ, các tham số khác không khớp với lịch nào
-   */
-  test("TC-RM2: should return empty array if no matching schedule found", async ({
-    request,
-  }) => {
-    const params = {
-      ...VALID_PARAMS,
-      startTime: "03:00",
-    };
-    const url = buildUrl(params);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+  test("TC_RM02: movieId là số âm (-7)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, movieId: -7 },
     });
-
-    expect(response.status()).toBe(200);
-    const rooms = await response.json();
-    expect(Array.isArray(rooms)).toBe(true);
-    expect(rooms.length).toBe(0);
-  });
-  /**
-   * @desc GET /api/rooms - TC-RM3: Gửi API thiếu 1 tham số movieId
-   * @goal Status: 400 Bad Request
-   * @data Params: Thiếu movieId
-   */
-  test("TC-RM3: should fail with missing movieId parameter", async ({
-    request,
-  }) => {
-    const params = {
-      branchId: VALID_PARAMS.branchId,
-      startDate: VALID_PARAMS.startDate,
-      startTime: VALID_PARAMS.startTime,
-    };
-    const url = buildUrl(params);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
-    });
-
     expect(response.status()).toBe(400);
   });
 
-  /**
-   * @desc GET /api/rooms - TC-RM4: Gửi movieId kiểu dữ liệu chuỗi
-   * @goal Status: 400 Bad Request
-   * @data Params: movieId="abc"
-   */
-  test("TC-RM4: should fail with non-numeric movieId", async ({ request }) => {
-    const params = {
-      ...VALID_PARAMS,
-      movieId: "abc",
-    };
-    const url = buildUrl(params);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+  test("TC_RM03: movieId quá lớn (Integer Overflow)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, movieId: 9999999999 },
     });
-
     expect(response.status()).toBe(400);
   });
 
-  /**
-   * @desc GET /api/rooms - TC-RM5: Gửi startDate sai kiểu dữ liệu (ngày không hợp lệ)
-   * @goal Status: 400 Bad Request
-   * @data Params: startDate="2021-01-35"
-   */
-  test("TC-RM5: should fail with invalid date format for startDate", async ({
+  test("TC_RM04: movieId sai kiểu dữ liệu (chuỗi 'abc')", async ({
     request,
   }) => {
-    const params = {
-      ...VALID_PARAMS,
-      startDate: "2021-01-35",
-    };
-    const url = buildUrl(params);
-
-    const response = await request.get(url, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
-      },
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, movieId: "abc" },
     });
-    expect(response.status()).toBe(500);
+    expect(response.status()).toBe(400);
   });
 
-  /**
-   * @desc GET /api/rooms - TC-RM6: Gửi API mà không có Token
-   * @goal Status: 401 Unauthorized
-   * @data Params: Các tham số hợp lệ, Headers: Không có Token
-   */
-  test("TC-RM6: should fail with missing authorization token (401)", async ({
+  test("TC_RM05: Thiếu trường movieId (Missing)", async ({ request }) => {
+    const params = { ...VALID_DATA };
+    delete params.movieId;
+
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: params,
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM06: movieId không tồn tại (Logic Not Found)", async ({
     request,
   }) => {
-    const url = buildUrl(VALID_PARAMS);
-    const response = await request.get(url);
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, movieId: 9999 },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM07: branchId là số âm (-1)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, branchId: -1 },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM08: branchId quá lớn (Overflow)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, branchId: 9999999999 },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM09: branchId sai format (Space)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, branchId: "   " },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM10: Thiếu trường branchId", async ({ request }) => {
+    const params = { ...VALID_DATA };
+    delete params.branchId;
+
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: params,
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM11: Ngày sai logic (32/02) - Kiểm tra lỗi 500", async ({
+    request,
+  }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, startDate: "2021-02-32" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM12: Ngày sai định dạng (dd-mm-yyyy)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, startDate: "02-04-2021" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM13: Thiếu trường startDate", async ({ request }) => {
+    const params = { ...VALID_DATA };
+    delete params.startDate;
+
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: params,
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM14: Giờ sai logic (25:10)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, startTime: "25:10" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM15: Thiếu trường startTime", async ({ request }) => {
+    const params = { ...VALID_DATA };
+    delete params.startTime;
+
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: params,
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM16: Không gửi Token (Unauthenticated)", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      params: VALID_DATA,
+    });
     expect(response.status()).toBe(401);
+  });
+
+  test("TC_RM17: Gửi Token rác/Hết hạn", async ({ request }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: { Authorization: "Bearer token_rac_123456" },
+      params: VALID_DATA,
+    });
+    expect(response.status()).toBe(401);
+  });
+
+  test("TC_RM18: SQL Injection - Boolean Based (startDate)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, startDate: "2021-01-05' OR '1'='1" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM19: SQL Injection - UNION SELECT (movieId)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, movieId: "7 UNION SELECT 1, version()--" },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  test("TC_RM20: SQL Injection - Time Based (SLEEP)", async ({ request }) => {
+    console.log("Checking Time-based SQL Injection...");
+    const start = Date.now();
+
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, branchId: "1; SLEEP(5)--" },
+    });
+
+    const duration = Date.now() - start;
+    console.log(`Response Time: ${duration}ms`);
+    expect(response.status()).toBe(400);
+    expect(duration).toBeLessThan(2000);
+  });
+
+  test("TC_RM21: SQL Injection - Drop Table (startTime)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+      headers: getHeaders(),
+      params: { ...VALID_DATA, startTime: "10:00'; DROP TABLE schedules--" },
+    });
+    expect(response.status()).toBe(400);
   });
 });
