@@ -35,7 +35,7 @@ export default defineConfig({
     trace: "on-first-retry",
   },
 
-  globalSetup: require.resolve("./tests/setup/global_auth.js"),
+  //globalSetup: require.resolve("./tests/setup/global_auth.js"),
 
   /* Configure projects for major browsers */
   projects: [

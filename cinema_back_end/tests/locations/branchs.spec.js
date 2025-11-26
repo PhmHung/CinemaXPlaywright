@@ -1,151 +1,165 @@
 /** @format */
 import { test, expect } from "@playwright/test";
-import * as fs from "fs";
 
 const baseURL = "http://localhost:8080";
-const TOKEN_FILE_PATH = "./tests/test_data/authentic.json";
+let accessToken = "";
 
-let authToken;
+test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
+  test.beforeAll(async ({ request }) => {
+    console.log("--- SETUP: Đang đăng nhập với testr1@gmail.com ---");
 
-test.describe("API Tests for GET /api/branches", () => {
-  test.beforeAll(() => {
-    try {
-      const authFileContent = fs.readFileSync(TOKEN_FILE_PATH, "utf-8");
-      const authData = JSON.parse(authFileContent);
-      authToken = authData.accessToken;
-    } catch (error) {
-      console.error(
-        `LỖI: Không thể tải token từ ${TOKEN_FILE_PATH}. Vui lòng chạy globalSetup trước.`
-      );
-      throw error;
-    }
-  });
-
-  /**
-   * @desc GET /api/branches - TC-B1: Lấy danh sách chi nhánh phim có movieId hợp lệ và có lịch chiếu
-   * @goal Status: 200 OK, Body: Chứa thông tin của chi nhánh (List không rỗng)
-   * @data Params: movieId hợp lệ (ví dụ: 7)
-   */
-  test("TC-B1: should return list of branches with valid movieId and available schedule", async ({
-    request,
-  }) => {
-    const movieIdWithSchedule = 7;
-
-    const response = await request.get(
-      `${baseURL}/api/branches?movieId=${movieIdWithSchedule}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
+    const response = await request.post(`${baseURL}/login`, {
+      data: {
+        username: "testr1@gmail.com",
+        password: "123456",
+      },
+    });
 
     expect(response.status()).toBe(200);
-    const branches = await response.json();
-    expect(Array.isArray(branches)).toBe(true);
-    expect(branches.length).toBeGreaterThan(0);
+    const body = await response.json();
+    accessToken = body.accessToken;
+    console.log("SETUP: Đã lấy được Token!");
   });
 
-  /**
-   * @desc GET /api/branches - TC-B2: Lấy danh sách chi nhánh phim có movieId hợp lệ nhưng không có lịch chiếu
-   * @goal Status: 200 OK, Body: Rỗng ([])
-   * @data Params: movieId hợp lệ (ví dụ: 999 - không có lịch chiếu)
-   */
-  test("TC-B2: should return empty list with valid movieId but no schedule", async ({
-    request,
-  }) => {
-    const movieIdWithoutSchedule = 999;
-
-    const response = await request.get(
-      `${baseURL}/api/branches?movieId=${movieIdWithoutSchedule}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
-
-    expect(response.status()).toBe(200);
-    const branches = await response.json();
-    expect(Array.isArray(branches)).toBe(true);
-    expect(branches.length).toBe(0);
-  });
-
-  /**
-   * @desc GET /api/branches - TC-B3: Lấy danh sách chi nhánh phim với movieId không tồn tại/không hợp lệ
-   * @goal Status: 200 OK, Body: Rỗng ([])
-   * @data Params: movieId không hợp lệ (ví dụ: 0)
-   */
-  test("TC-B3: should return empty list with non-existent movieId", async ({
-    request,
-  }) => {
-    const nonExistentMovieId = 0;
-
-    const response = await request.get(
-      `${baseURL}/api/branches?movieId=${nonExistentMovieId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
-
-    expect(response.status()).toBe(200);
-
-    const branches = await response.json();
-    expect(Array.isArray(branches)).toBe(true);
-    expect(branches.length).toBe(0);
-  });
-
-  /**
-   * @desc GET /api/branches - TC-B4: Lấy danh sách chi nhánh phim không có tham số movieId
-   * @goal Status: 400 Bad Request
-   * @data Params: Thiếu movieId
-   */
-  test("TC-B4: should fail with missing movieId parameter", async ({
+  //TC_B1: HAPPY PATH - CÓ LỊCH CHIẾU
+  test("TC_B1: Lấy danh sách nhánh có lịch chiếu (movieId=1)", async ({
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: {
-        Authorization: `Bearer ${authToken}`,
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: 7,
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(Array.isArray(body)).toBeTruthy();
+    expect(body.length).toBeGreaterThan(0);
+  });
+
+  //TC_B2: HAPPY PATH - KHÔNG CÓ LỊCH CHIẾU
+  test("TC_B2: Lấy danh sách nhánh KHÔNG có lịch chiếu", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: 3,
+      },
+    });
+
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual([]);
+  });
+
+  //TC_B3: INVALID GET - ID KHÔNG TỒN TẠI
+  test("TC_B3: Lấy danh sách với movieId không tồn tại (movieId=99)", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: 99,
+      },
+    });
+
+    expect(response.status()).toBe(200);
+  });
+
+  //TC_B4: INVALID TYPE - SAI KIỂU DỮ LIỆU
+  test("TC_B4: Kiểm tra movieId sai kiểu (String 'abc')", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: "abc",
       },
     });
 
     expect(response.status()).toBe(400);
   });
 
-  /**
-   * @desc GET /api/branches - TC-B5: Lấy danh sách chi nhánh phim có movieId không hợp lệ (là ký tự chữ)
-   * @goal Status: 400 Bad Request
-   * @data Params: movieId là ký tự chữ (ví dụ: "abc")
-   */
-  test("TC-B5: should fail with non-numeric movieId parameter", async ({
-    request,
-  }) => {
-    const nonNumericMovieId = "abc";
-
-    const response = await request.get(
-      `${baseURL}/api/branches?movieId=${nonNumericMovieId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${authToken}`,
-        },
-      }
-    );
+  //TC_B5: MISSING GET - THIẾU MOVIEID
+  test("TC_B5: Kiểm tra body rỗng (Thiếu movieId)", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {},
+    });
 
     expect(response.status()).toBe(400);
   });
 
-  /**
-   * @desc GET /api/branches - TC-B6: Lấy danh sách chi nhánh phim không có token xác thực
-   * @goal Status: 401 Unauthorized
-   * @data Params: movieId hợp lệ, Headers: Không có Token
-   */
-  test("TC-B6: should fail with missing authorization token (401)", async ({
-    request,
-  }) => {
-    const response = await request.get(`${baseURL}/api/branches?movieId=7`);
+  //TC_B6: TYPO PARAM - SAI TÊN THAM SỐ
+  test("TC_B6: Kiểm tra sai tên tham số (movie_Id)", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movie_Id: "7",
+      },
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  //TC_B7: BUSINESS LOGIC - SỐ ÂM
+  test("TC_B7: Kiểm tra movieId là số âm (-1)", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: -1,
+      },
+    });
+
+    expect(response.status()).toBe(400);
+  });
+
+  //TC_B8: SECURITY - KHÔNG DÙNG TOKEN
+  test("TC_B8: Truy cập không sử dụng Token", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      params: {
+        movieId: 1,
+      },
+    });
 
     expect(response.status()).toBe(401);
+  });
+
+  //TC_B9: SECURITY - SQL INJECTION
+  test("TC_B9: Kiểm tra SQL Injection", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: "1 OR 1=1",
+      },
+    });
+    expect(response.status()).toBe(400);
+  });
+
+  //TC_B10: EDGE CASE - MAX INTEGER
+  test("TC_B10: Kiểm tra movieId là số cực lớn", async ({ request }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: 9999999999,
+      },
+    });
+
+    expect(response.status()).not.toBe(500);
+  });
+
+  //TC_B11: EDGE CASE - KHOẢNG TRẮNG
+  test("TC_B11: Kiểm tra movieId chứa khoảng trắng ('  ')", async ({
+    request,
+  }) => {
+    const response = await request.get(`${baseURL}/api/branches`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        movieId: "  ",
+      },
+    });
+    expect(response.status()).toBe(400);
   });
 });
