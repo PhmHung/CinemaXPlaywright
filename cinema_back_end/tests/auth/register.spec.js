@@ -1,5 +1,6 @@
 /** @format */
-import { test, expect } from "@playwright/test";
+import { test } from "../fixtures/auth-fixture.js";
+import { expect } from "@playwright/test";
 
 const baseURL = "http://localhost:8080";
 

@@ -1,5 +1,7 @@
 /** @format */
-import { test, expect } from "@playwright/test";
+
+import { test } from "../fixtures/auth-fixture.js";
+import { expect } from "@playwright/test";
 
 const BASE_URL = "http://localhost:8080";
 const API_PATH = "/api/schedule/start-times";
@@ -9,43 +11,11 @@ const VALID_DATA = {
   startDate: "2021-01-05",
 };
 
-let accessToken = "";
-
 test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
-  test.beforeAll(async ({ request }) => {
-    console.log("--- [SETUP] Đang đăng nhập hệ thống ---");
-    const response = await request.post(`${BASE_URL}/login`, {
-      data: {
-        username: "testr1@gmail.com",
-        password: "123456",
-      },
-    });
-
-    expect(
-      response.status(),
-      "Đăng nhập thất bại! Kiểm tra lại user/pass"
-    ).toBe(200);
-
-    const body = await response.json();
-    accessToken = body.accessToken;
-    console.log(
-      `--- [SETUP] Đăng nhập thành công. Token: ${accessToken.substring(
-        0,
-        10
-      )}... ---`
-    );
-  });
-
-  const getHeaders = () => ({
-    Authorization: `Bearer ${accessToken}`,
-    "Content-Type": "application/json",
-  });
-
   test("TC01: [Base Choice] Lấy lịch chiếu thành công (Happy Path)", async ({
-    request,
+    authRequest,
   }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: VALID_DATA,
     });
 
@@ -55,44 +25,39 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
     console.log(`TC01 Passed. Tìm thấy ${body.length} suất chiếu.`);
   });
 
-  test("TC02: movieId là số âm (-7)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC02: movieId là số âm (-7)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, movieId: -7 },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC03: movieId quá lớn (Integer Overflow)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC03: movieId quá lớn (Integer Overflow)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, movieId: 21474836489 },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC04: movieId sai kiểu (chuỗi 'abc')", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC04: movieId sai kiểu (chuỗi 'abc')", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, movieId: "abc" },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC05: Thiếu trường movieId", async ({ request }) => {
+  test("TC05: Thiếu trường movieId", async ({ authRequest }) => {
     const params = { ...VALID_DATA };
     delete params.movieId;
 
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: params,
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC06: movieId không tồn tại (9999)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC06: movieId không tồn tại (9999)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, movieId: 9999 },
     });
     if (response.status() === 200) {
@@ -103,46 +68,41 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
     }
   });
 
-  test("TC07: branchId là số âm (-1)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC07: branchId là số âm (-1)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, branchId: -1 },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC08: branchId quá lớn (Overflow)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC08: branchId quá lớn (Overflow)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, branchId: 9999999999 },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC09: branchId là khoảng trắng/sai format", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC09: branchId là khoảng trắng/sai format", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, branchId: "   " },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC10: Thiếu trường branchId", async ({ request }) => {
+  test("TC10: Thiếu trường branchId", async ({ authRequest }) => {
     const params = { ...VALID_DATA };
     delete params.branchId;
 
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: params,
     });
     expect(response.status()).toBe(400);
   });
 
   test("TC11: [Quan trọng] Ngày sai logic (Ngày 32/01)", async ({
-    request,
+    authRequest,
   }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, startDate: "2021-01-32" },
     });
     expect(
@@ -151,38 +111,36 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
     ).toBe(400);
   });
 
-  test("TC12: Ngày sai định dạng (05-01-2021)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC12: Ngày sai định dạng (05-01-2021)", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, startDate: "05-01-2021" },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC13: Thiếu trường startDate", async ({ request }) => {
+  test("TC13: Thiếu trường startDate", async ({ authRequest }) => {
     const params = { ...VALID_DATA };
     delete params.startDate;
 
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: params,
     });
     expect(response.status()).toBe(400);
   });
 
   test("TC14: SQL Injection - Boolean Based (startDate)", async ({
-    request,
+    authRequest,
   }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, startDate: "2021-01-05' OR '1'='1" },
     });
     expect(response.status()).toBe(400);
   });
 
-  test("TC15: SQL Injection - UNION SELECT (movieId)", async ({ request }) => {
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+  test("TC15: SQL Injection - UNION SELECT (movieId)", async ({
+    authRequest,
+  }) => {
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, movieId: "7 UNION SELECT 1, version()--" },
     });
 
@@ -190,14 +148,13 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
   });
 
   test("TC16: SQL Injection - Time Based (branchId SLEEP)", async ({
-    request,
+    authRequest,
   }) => {
     const payload = "1; SLEEP(5)--";
 
     const startTime = Date.now();
 
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
-      headers: getHeaders(),
+    const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, branchId: payload },
     });
 
@@ -209,9 +166,9 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
     expect(duration).toBeLessThan(2000);
   });
 
-  test("TC17: Không gán Token (Unauthorized)", async ({ request }) => {
+  test("TC17: Không gán Token (Unauthorized)", async ({ publicRequest }) => {
     console.log("--- Running TC17: Testing without Token ---");
-    const response = await request.get(`${BASE_URL}${API_PATH}`, {
+    const response = await publicRequest.get(`${BASE_URL}${API_PATH}`, {
       headers: {
         "Content-Type": "application/json",
       },

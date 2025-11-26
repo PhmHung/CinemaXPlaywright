@@ -1,0 +1,6 @@
+{
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0cjFAZ21haWwuY29tIiwiaWF0IjoxNzY0MTY3NzgyLCJleHAiOjg4MTY0MTY3NzgyfQ.kH3w-VmhPCztI27NVIhO93BmvsrGYDYvQwx-ip9v1osqNljmFoT-HdnLQxGd2z0r9vw-jh4jr-ZA5y3auweVeg",
+  "username": "testr1@gmail.com",
+  "timestamp": "2025-11-26T14:36:22.694Z",
+  "note": "Token cố định cho toàn bộ test suite"
+}

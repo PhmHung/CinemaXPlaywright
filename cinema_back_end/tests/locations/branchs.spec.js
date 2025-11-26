@@ -1,32 +1,16 @@
 /** @format */
-import { test, expect } from "@playwright/test";
+import { test, validToken } from "../fixtures/auth-fixture.js";
+import { expect } from "@playwright/test";
 
 const baseURL = "http://localhost:8080";
-let accessToken = "";
 
 test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
-  test.beforeAll(async ({ request }) => {
-    console.log("--- SETUP: Đang đăng nhập với testr1@gmail.com ---");
-
-    const response = await request.post(`${baseURL}/login`, {
-      data: {
-        username: "testr1@gmail.com",
-        password: "123456",
-      },
-    });
-
-    expect(response.status()).toBe(200);
-    const body = await response.json();
-    accessToken = body.accessToken;
-    console.log("SETUP: Đã lấy được Token!");
-  });
-
   //TC_B1: HAPPY PATH - CÓ LỊCH CHIẾU
   test("TC_B1: Lấy danh sách nhánh có lịch chiếu (movieId=1)", async ({
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: 7,
       },
@@ -43,7 +27,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: 3,
       },
@@ -59,7 +43,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: 99,
       },
@@ -73,7 +57,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: "abc",
       },
@@ -85,7 +69,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   //TC_B5: MISSING GET - THIẾU MOVIEID
   test("TC_B5: Kiểm tra body rỗng (Thiếu movieId)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {},
     });
 
@@ -95,7 +79,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   //TC_B6: TYPO PARAM - SAI TÊN THAM SỐ
   test("TC_B6: Kiểm tra sai tên tham số (movie_Id)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movie_Id: "7",
       },
@@ -107,7 +91,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   //TC_B7: BUSINESS LOGIC - SỐ ÂM
   test("TC_B7: Kiểm tra movieId là số âm (-1)", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: -1,
       },
@@ -130,7 +114,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   //TC_B9: SECURITY - SQL INJECTION
   test("TC_B9: Kiểm tra SQL Injection", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: "1 OR 1=1",
       },
@@ -141,7 +125,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
   //TC_B10: EDGE CASE - MAX INTEGER
   test("TC_B10: Kiểm tra movieId là số cực lớn", async ({ request }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: 9999999999,
       },
@@ -155,7 +139,7 @@ test.describe("API Tests for POST /api/branches (TC_B1 - TC_B11)", () => {
     request,
   }) => {
     const response = await request.get(`${baseURL}/api/branches`, {
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: `Bearer ${validToken}` },
       params: {
         movieId: "  ",
       },

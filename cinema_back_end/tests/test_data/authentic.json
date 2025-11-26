@@ -1,4 +1,6 @@
 {
-  "accessToken": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJodW5nQGV4YW1wbGUuY29tIiwiaWF0IjoxNzYzODE1OTM2LCJleHAiOjg4MTYzODE1OTM2fQ.AQ4CsdF8HVAnPhb8lG19hiXAk9HQIhibGH-6lCogECCvZf7tN3MlQIH7SxCHnx6fkDi0md_XF9glp0Cvo1tvwg",
-  "timestamp": "2025-11-22T12:52:16.605Z"
+  "accessToken": "eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0cjFAZ21haWwuY29tIiwiaWF0IjoxNzY0MTUwMDU0LCJleHAiOjg4MTY0MTUwMDU0fQ.VuAS9k2IabjP3GiqjaGJk3yju3wtzhJBzudTBgPLokGbj-N2vo2xWBmMloyY2YrWZxtMr9R6XfOBFvyZCSTDOg",
+  "username": "testr1@gmail.com",
+  "timestamp": "2025-11-26T09:40:54.258Z",
+  "note": "Token cố định cho toàn bộ test suite"
 }

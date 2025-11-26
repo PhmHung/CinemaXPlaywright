@@ -1,86 +1,82 @@
-import { test, expect } from '@playwright/test';
-import * as fs from 'fs/promises';
+/** @format */
 
-// --- 1. CẤU HÌNH ---
-const BASE_URL = 'http://localhost:8080';
-const ENDPOINT = '/api/movies/showing';
-const TOKEN_FILE_PATH = './tests/test_data/authentic.json';
+import { test } from "../fixtures/auth-fixture.js";
+import { expect } from "@playwright/test";
 
-test.describe('Phim Đang Chiếu API Tests (GET /api/movies/showing)', () => {
-    let validToken;
+const BASE_URL = "http://localhost:8080";
+const ENDPOINT = "/api/movies/showing";
 
-    // --- 2. SETUP: Đọc Token từ file ---
-    test.beforeAll(async () => {
-        try {
-            const data = await fs.readFile(TOKEN_FILE_PATH, 'utf-8');
-            validToken = JSON.parse(data).accessToken;
-        } catch (error) {
-            console.warn("⚠️ Không đọc được file token.");
-        }
+test.describe("Phim Đang Chiếu API Tests (GET /api/movies/showing)", () => {
+  // GROUP 1: HAPPY PATH
+  test("TC_M01: Gọi API không cần token", async ({ publicRequest }) => {
+    const response = await publicRequest.get(`${BASE_URL}${ENDPOINT}`);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  test("TC_M02: Gọi API khi có token hợp lệ", async ({ authRequest }) => {
+    const response = await authRequest.get(`${BASE_URL}${ENDPOINT}`);
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  test("TC_M03: Gửi param không hợp lệ (vẫn trả về danh sách)", async ({
+    publicRequest,
+  }) => {
+    const response = await publicRequest.get(
+      `${BASE_URL}${ENDPOINT}?abc=xyz&page=-1`
+    );
+    expect(response.status()).toBe(200);
+    const body = await response.json();
+    expect(Array.isArray(body)).toBe(true);
+  });
+
+  test("TC_M04: Kiểm tra CORS headers", async ({ publicRequest }) => {
+    const response = await publicRequest.get(`${BASE_URL}${ENDPOINT}`, {
+      headers: { Origin: "http://another-frontend.com" },
+    });
+    expect(response.status()).toBe(200);
+    const headers = response.headers();
+    const allowOrigin = headers["access-control-allow-origin"] || "";
+    expect(allowOrigin).not.toBe("");
+    expect(allowOrigin).toBe("*"); // hoặc domain cụ thể nếu backend cấu hình
+  });
+
+  // GROUP 2: NEGATIVE / EDGE CASE
+  test("TC_M05: Gửi sai method (POST thay vì GET)", async ({
+    publicRequest,
+  }) => {
+    const response = await publicRequest.post(`${BASE_URL}${ENDPOINT}`);
+    expect([405, 400, 404]).toContain(response.status());
+  });
+
+  test("TC_M06: Endpoint sai chính tả", async ({ publicRequest }) => {
+    const response = await publicRequest.get(`${BASE_URL}/api/movies/showwing`);
+    expect(response.status()).toBe(404);
+  });
+
+  test("TC_M07: Gửi token sai định dạng", async ({ publicRequest }) => {
+    // Dùng context có token sai
+    const response = await publicRequest.fetch(`${BASE_URL}${ENDPOINT}`, {
+      headers: { Authorization: "Bearer abc123xyz" },
     });
 
-    // --- 3. HELPER FUNCTION ---
-    const getMovies = async (request, token = null, params = '', method = 'GET') => {
-        const headers = {};
-        if (token) headers.Authorization = `Bearer ${token}`;
-        const fullUrl = `${BASE_URL}${ENDPOINT}${params}`;
-        return await request.fetch(fullUrl, { method, headers });
-    };
+    // Vì API public → backend không kiểm tra token → vẫn 200
+    // Nếu backend có middleware reject token sai → 401
+    expect([200, 401]).toContain(response.status());
+  });
 
-    // --- GROUP 1: HAPPY PATH ---
-    test('TC_M01: Gọi API không cần token', async ({ request }) => {
-        const response = await getMovies(request);
-        expect(response.status()).toBe(200);
-        const body = await response.json();
-        expect(Array.isArray(body)).toBe(true);
-    });
+  test("TC_M08: Kiểm tra phản hồi server (Response Time < 2000ms)", async ({
+    publicRequest,
+  }) => {
+    const start = Date.now();
+    const response = await publicRequest.get(`${BASE_URL}${ENDPOINT}`);
+    const duration = Date.now() - start;
 
-    test('TC_M02: Gọi API khi có token hợp lệ', async ({ request }) => {
-        const response = await getMovies(request, validToken);
-        expect(response.status()).toBe(200);
-        const body = await response.json();
-        expect(Array.isArray(body)).toBe(true);
-    });
-
-    test('TC_M03: Gửi param không hợp lệ (vẫn trả về danh sách)', async ({ request }) => {
-        const response = await getMovies(request, null, '?abc=xyz');
-        expect(response.status()).toBe(200);
-        const body = await response.json();
-        expect(Array.isArray(body)).toBe(true);
-    });
-
-    test('TC_M04: Kiểm tra CORS headers', async ({ request }) => {
-        const response = await request.get(`${BASE_URL}${ENDPOINT}`, {
-            headers: { 'Origin': 'http://another-frontend.com' },
-        });
-        expect(response.status()).toBe(200);
-        // Kiểm tra lỏng: server trả header CORS
-        const headers = response.headers();
-        expect(headers['access-control-allow-origin'] || '').not.toBe('');
-    });
-
-    // --- GROUP 2: NEGATIVE / EDGE CASE ---
-    test('TC_M05: Gửi sai method (POST thay vì GET)', async ({ request }) => {
-        const response = await getMovies(request, null, '', 'POST');
-        expect([405, 401, 403, 404, 400]).toContain(response.status());
-    });
-
-    test('TC_M06: Endpoint sai chính tả', async ({ request }) => {
-        const response = await request.get(`${BASE_URL}/api/movies/showwing`);
-        expect([404, 401]).toContain(response.status());
-    });
-
-    test('TC_M07: Gửi token sai định dạng', async ({ request }) => {
-        const response = await getMovies(request, 'abc1234');
-        // API public trả 200, private trả 401 -> chấp nhận cả 2
-        expect([200, 401]).toContain(response.status());
-    });
-
-    test('TC_M08: Kiểm tra phản hồi server (Ping / Load)', async ({ request }) => {
-        const start = Date.now();
-        const response = await getMovies(request);
-        const duration = Date.now() - start;
-        expect(response.status()).toBe(200);
-        console.log(`Request duration: ${duration}ms`);
-    });
+    expect(response.status()).toBe(200);
+    expect(duration).toBeLessThan(2000);
+    console.log(`Request duration: ${duration}ms`);
+  });
 });
