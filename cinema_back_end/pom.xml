@@ -14,7 +14,7 @@
     <name>cinema_back_end</name>
     <description>cinema_back_end</description>
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <dependency>
