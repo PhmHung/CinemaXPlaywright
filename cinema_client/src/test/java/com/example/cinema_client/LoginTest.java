@@ -44,6 +44,22 @@ public class LoginTest extends TestContext {
         ).isVisible();
     }
 
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Test
+    void loginTestingByCodegen() {
+        //Test recorded by Codegen
+        page.navigate("http://localhost:8081/");
+        page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Đăng nhập")).click();
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).click();
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example@gmail.com");
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Mật khẩu")).click();
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Mật khẩu")).fill("1234567");
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Đăng Nhập")).click();
+
+        assertThat(page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Lịch sử mua vé"))).isVisible();
+        assertThat(page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Cá nhân"))).isVisible();
+        assertThat(page.getByText("Test1")).isVisible();
+    }
 
     /**
      * Test case UI_L02: Login test - User Account not exist.
