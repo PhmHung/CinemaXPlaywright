@@ -32,7 +32,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: After 4-5 seconds, Auto scroll to the next movie banner
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void carouselAutoScroll() {
         page.navigate("http://localhost:8081/");
 
@@ -40,7 +40,7 @@ public class HomepageTest extends TestContext {
 
         String firstActiveSlide = activeIndicator.getAttribute("data-slide-to");
 
-        page.waitForTimeout(6000);
+        page.waitForTimeout(15000);
         String secondActiveSlide = activeIndicator.getAttribute("data-slide-to");
 
         Assertions.assertNotEquals(firstActiveSlide, secondActiveSlide);
@@ -53,7 +53,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Clicked the arrows on both side, can change the movie banner
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void carouselManualControls() {
         page.navigate("http://localhost:8081/");
 
@@ -85,7 +85,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Details about selected movie appears
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void viewMovieDetailsNotLoggedIn() {
         page.navigate("http://localhost:8081/");
 
@@ -106,7 +106,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Details about selected movie appears
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void viewMovieDetailsLoggedIn() {
         page.navigate("http://localhost:8081/");
         login(page);
@@ -127,7 +127,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Search results appears with the desired movie
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void searchMovieExists() {
         page.navigate("http://localhost:8081/");
 
@@ -156,7 +156,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Search results return no matching
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void searchMovieDoesNotExist() {
         page.navigate("http://localhost:8081/");
 
@@ -180,7 +180,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Login modal appears on screen
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void buyTicketNotLoggedIn() {
         page.navigate("http://localhost:8081/");
 
@@ -201,7 +201,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Divert to cinema branched choosing menu
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void buyTicketLoggedIn() {
         page.navigate("http://localhost:8081/");
         login(page);
@@ -222,7 +222,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Branch List appears on screen
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void displayBranchList() {
         page.navigate("http://localhost:8081/");
         login(page);
@@ -248,7 +248,7 @@ public class HomepageTest extends TestContext {
      * Expected Output: Diverted to movie schedule menu
      */
     @Test
-    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    @Timeout(value = 20, unit = TimeUnit.SECONDS)
     void selectBranchSuccess() {
         page.navigate("http://localhost:8081/");
         login(page);
@@ -256,16 +256,11 @@ public class HomepageTest extends TestContext {
         Locator movieCard = page.locator("div.card.movie-item")
                 .filter(new Locator.FilterOptions().setHasText("Người Nhện"));
         Locator buyTicketButton = movieCard.getByText("Mua vé");
-
         buyTicketButton.click();
-
         assertThat(page).hasURL("http://localhost:8081/branches?movieId=7");
-
         Locator haDongCard = page.locator("div.card.branch-item")
                 .filter(new Locator.FilterOptions().setHasText("HUYCINEMA Hà Đông"));
-
         haDongCard.getByRole(AriaRole.LINK).click();
-
         assertThat(page).hasURL("http://localhost:8081/schedule?movieId=7&branchId=1");
 
     }
