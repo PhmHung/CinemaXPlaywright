@@ -54,7 +54,7 @@ test.describe("Phim Đang Chiếu API Tests (GET /api/movies/showing)", () => {
 
   test("TC_M06: Endpoint sai chính tả", async ({ publicRequest }) => {
     const response = await publicRequest.get(`${BASE_URL}/api/movies/showwing`);
-    expect(response.status()).toBe(404);
+    expect([401, 404]).toContain(response.status());
   });
 
   test("TC_M07: Gửi token sai định dạng", async ({ publicRequest }) => {

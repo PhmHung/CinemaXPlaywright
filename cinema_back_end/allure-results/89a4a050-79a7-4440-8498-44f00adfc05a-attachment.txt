@@ -1,0 +1,2 @@
+Đang test với email: test_auto_1764429768423@gmail.com
+Server phản hồi: {"id":234,"accessToken":"eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJ0ZXN0X2F1dG9fMTc2NDQyOTc2ODQyM0BnbWFpbC5jb20iLCJpYXQiOjE3NjQ0Mjk3NjgsImV4cCI6ODgxNjQ0Mjk3Njh9.KJya68lf_kh3ZU-UkkQ64OCRJVBONpuaoDI0vb8-MtBuRvAe22kj5bw_E4LiDngbhWNSwpKE84KqphE98b2J4A","tokenType":"Bearer","username":"test_auto_1764429768423@gmail.com","name":"Register Test"}

@@ -1,5 +1,5 @@
 package com.example.cinema_client;
-
+import io.qameta.allure.*;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import org.junit.jupiter.api.*;
@@ -18,7 +18,7 @@ public class HomepageTest extends TestContext {
      */
     private void login(Page page) {
         page.locator("a[data-target='#modalLoginForm']").click();
-        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example@gmail.com");
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example1@gmail.com");
         page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Mật khẩu")).fill("1234567");
         page.locator("#modalLoginForm").locator("button[type='submit']").click();
 

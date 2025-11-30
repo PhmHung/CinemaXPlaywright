@@ -15,7 +15,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
-
+import io.qameta.allure.*;
 
 public class StateContext extends TestContext {
 
@@ -25,7 +25,7 @@ public class StateContext extends TestContext {
     private void LogInState() throws IOException {
         Files.createDirectories(AUTH_FILE.getParent());
 
-        String USERNAME = System.getenv().getOrDefault("PW_USERNAME", "hait5169@gmail.com");
+        String USERNAME = System.getenv().getOrDefault("PW_USERNAME", "testr1@gmail.com");
         String PASSWORD = System.getenv().getOrDefault("PW_PASSWORD", "123456");
 
         Playwright pw = null;
@@ -101,7 +101,7 @@ public class StateContext extends TestContext {
     static void resetTicketDatabase() {
         String jdbcUrl = "jdbc:mysql://localhost:3306/cinema";
         String username = "root";
-        String password = "";
+        String password = "1234";
 
         try {
             // Load MySQL JDBC Driver

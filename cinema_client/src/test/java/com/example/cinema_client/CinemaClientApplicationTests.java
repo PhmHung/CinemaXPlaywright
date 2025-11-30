@@ -1,5 +1,5 @@
 package com.example.cinema_client;
-
+import io.qameta.allure.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.web.util.UriComponentsBuilder;

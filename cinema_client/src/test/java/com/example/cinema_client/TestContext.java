@@ -3,7 +3,7 @@ package com.example.cinema_client;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import org.junit.jupiter.api.*;
-
+import io.qameta.allure.*;
 import java.util.concurrent.TimeUnit;
 
 import static com.microsoft.playwright.assertions.PlaywrightAssertions.assertThat;

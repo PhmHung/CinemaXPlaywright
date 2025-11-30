@@ -1,2 +1,0 @@
---- [SETUP] Đang đăng nhập hệ thống ---
---- [SETUP] Đăng nhập thành công. Token đã sẵn sàng. ---

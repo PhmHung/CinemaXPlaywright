@@ -99,16 +99,11 @@ test.describe("API Schedule Testing (Base Choice + SQL Injection)", () => {
     expect(response.status()).toBe(400);
   });
 
-  test("TC11: [Quan trọng] Ngày sai logic (Ngày 32/01)", async ({
-    authRequest,
-  }) => {
+  test("TC11: Ngày sai logic (Ngày 32/01)", async ({ authRequest }) => {
     const response = await authRequest.get(`${BASE_URL}${API_PATH}`, {
       params: { ...VALID_DATA, startDate: "2021-01-32" },
     });
-    expect(
-      response.status(),
-      "Server không xử lý tốt ngày không tồn tại (đã crash ra 500)"
-    ).toBe(400);
+    expect(response.status()).toBe(400);
   });
 
   test("TC12: Ngày sai định dạng (05-01-2021)", async ({ authRequest }) => {

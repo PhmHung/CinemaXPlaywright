@@ -1,5 +1,5 @@
 package com.example.cinema_client;
-
+import io.qameta.allure.*;
 import com.microsoft.playwright.*;
 import com.microsoft.playwright.options.AriaRole;
 import org.junit.jupiter.api.*;
@@ -26,7 +26,7 @@ public class LoginTest extends TestContext {
 
         registerButton.click();
 
-        emailInput.fill("example@gmail.com");
+        emailInput.fill("example1@gmail.com");
         passwordInput.fill("1234567");
 
         Locator registerModal = page.locator("#modalLoginForm");
@@ -78,7 +78,7 @@ public class LoginTest extends TestContext {
 
         page.locator("a[data-target='#modalLoginForm']").click();
 
-        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example@gmail.com");
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example1@gmail.com");
         page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Mật khẩu")).fill("1234567__"); // Wrong Password
 
         page.locator("#modalLoginForm").locator("button[type='submit']").click();
@@ -137,7 +137,7 @@ public class LoginTest extends TestContext {
         page.locator("a[data-target='#modalRegisterForm']").click();
 
         page.getByLabel("Họ tên").fill("TestUser");
-        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example@gmail.com");
+        page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Email")).fill("example1@gmail.com");
         page.getByRole(AriaRole.TEXTBOX, new Page.GetByRoleOptions().setName("Mật khẩu")).fill("12345678910");
 
         page.locator("#modalRegisterForm").locator("button[type='submit']").click();
@@ -273,7 +273,7 @@ public class LoginTest extends TestContext {
 
         loginModalButton.click();
 
-        emailInput.fill("example@gmail.com");
+        emailInput.fill("example1@gmail.com");
         passwordInput.fill("1234567");
 
         Locator loginModal = page.locator("#modalLoginForm");

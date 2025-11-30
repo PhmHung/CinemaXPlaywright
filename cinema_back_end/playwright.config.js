@@ -1,6 +1,5 @@
 /** @format */
 
-// @ts-check
 import { defineConfig, devices } from "@playwright/test";
 
 /**
@@ -26,10 +25,17 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ["html"], // giữ nguyên HTML report như bạn đang dùng
-    ["list"], // tuỳ chọn: hiển thị log trong terminal
-    ["json", { outputFile: "report.json" }], // tuỳ chọn
-    ["allure-playwright"], // nếu bạn muốn dùng Allure
+    ["html"],
+    ["list"],
+    ["json", { outputFile: "report.json" }],
+    [
+      "allure-playwright",
+      {
+        outputFolder: "allure-results",
+        detail: true,
+        suiteTitle: false,
+      },
+    ],
   ],
 
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
